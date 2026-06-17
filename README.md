@@ -80,6 +80,10 @@ http://localhost:3002/remoteEntry.js
 http://localhost:3002/mf-manifest.json
 ```
 
+Dev-server отдаёт Module Federation manifest, remote entry и chunks с CORS-заголовком
+`Access-Control-Allow-Origin: *`, чтобы shell на `http://localhost:3000` мог загрузить remote
+в браузере.
+
 React и ReactDOM настроены как singleton shared dependencies с версией `19.2.7`, как в `shop-shell` и `shop-catalog`.
 
 ## Проверки
