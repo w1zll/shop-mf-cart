@@ -1,18 +1,20 @@
-import { createContext, ReactNode, useContext, useMemo, useState } from "react";
+import { createContext, ReactNode, useContext, useMemo } from "react";
 
 import {
-  addMockCartItem,
-  clearMockCart,
-  getMockCart,
-  removeMockCartItem,
-  updateMockCartItemQuantity,
-} from "./mock-cart-repository";
-import { Cart, CartLoadState } from "./cart-types";
+  CartQueryProvider,
+  useAddCartItemMutation,
+  useCartInvalidationSubscription,
+  useCartQuery,
+  useClearCartMutation,
+  useRemoveCartItemMutation,
+  useUpdateCartItemMutation,
+} from "./cart-query";
+import { Cart, CartLoadState, emptyCart } from "./cart-types";
 
 interface CartStoreValue {
   cart: Cart;
   state: CartLoadState;
-  addItem: (productId: string) => void;
+  addItem: (productId: string, quantity?: number) => void;
   clearCart: () => void;
   removeItem: (itemId: string) => void;
   setError: () => void;
@@ -22,41 +24,70 @@ interface CartStoreValue {
 
 const CartStoreContext = createContext<CartStoreValue | null>(null);
 
-export function CartStoreProvider({ children }: Readonly<{ children: ReactNode }>) {
-  const [cart, setCart] = useState<Cart>(() => getMockCart());
-  const [state, setState] = useState<CartLoadState>("success");
+function CartStoreProviderContent({ children }: Readonly<{ children: ReactNode }>) {
+  useCartInvalidationSubscription();
+
+  const cartQuery = useCartQuery();
+  const addItemMutation = useAddCartItemMutation();
+  const clearCartMutation = useClearCartMutation();
+  const removeItemMutation = useRemoveCartItemMutation();
+  const updateItemMutation = useUpdateCartItemMutation();
+  const isMutating =
+    addItemMutation.isPending ||
+    clearCartMutation.isPending ||
+    removeItemMutation.isPending ||
+    updateItemMutation.isPending;
+  const cart = cartQuery.data ?? emptyCart;
+  const state: CartLoadState = cartQuery.isLoading
+    ? "loading"
+    : cartQuery.isError
+      ? "error"
+      : "success";
 
   const value = useMemo<CartStoreValue>(
     () => ({
       cart,
-      state,
-      addItem(productId) {
-        setState("success");
-        setCart(addMockCartItem(productId));
+      state: isMutating && cartQuery.data ? "success" : state,
+      addItem(productId, quantity = 1) {
+        addItemMutation.mutate({ productId, quantity });
       },
       clearCart() {
-        setState("success");
-        setCart(clearMockCart());
+        clearCartMutation.mutate();
       },
       removeItem(itemId) {
-        setState("success");
-        setCart(removeMockCartItem(itemId));
+        removeItemMutation.mutate(itemId);
       },
       setError() {
-        setState("error");
+        // Сохранено для старых тестовых сценариев, реальные ошибки приходят из query state.
       },
       setLoading() {
-        setState("loading");
+        void cartQuery.refetch();
       },
       updateQuantity(itemId, quantity) {
-        setState("success");
-        setCart(updateMockCartItemQuantity(itemId, quantity));
+        updateItemMutation.mutate({ itemId, quantity });
       },
     }),
-    [cart, state],
+    [
+      addItemMutation,
+      cart,
+      cartQuery,
+      clearCartMutation,
+      isMutating,
+      removeItemMutation,
+      state,
+      updateItemMutation,
+    ],
   );
 
   return <CartStoreContext.Provider value={value}>{children}</CartStoreContext.Provider>;
+}
+
+export function CartStoreProvider({ children }: Readonly<{ children: ReactNode }>) {
+  return (
+    <CartQueryProvider>
+      <CartStoreProviderContent>{children}</CartStoreProviderContent>
+    </CartQueryProvider>
+  );
 }
 
 export function useCartStore() {

@@ -6,11 +6,11 @@ function CartPageView() {
   const { cart, clearCart, removeItem, state, updateQuantity } = useCartStore();
 
   if (state === "loading") {
-    return <LoadingState title="Загружаем корзину" />;
+    return <LoadingState label="Загружаем корзину" />;
   }
 
   if (state === "error") {
-    return <ErrorState title="Корзина временно недоступна" description="Это mock error state." />;
+    return <ErrorState title="Корзина временно недоступна" description="Cart API не отвечает." />;
   }
 
   return (
@@ -18,7 +18,7 @@ function CartPageView() {
       <div className="space-y-2">
         <h1 className="text-3xl font-semibold tracking-normal">Корзина</h1>
         <p className="text-sm text-[var(--shop-muted-foreground)]">
-          Первый cart remote работает на mock repository без API.
+          Корзина хранится на сервере и синхронизируется через Cart API.
         </p>
       </div>
 
@@ -91,7 +91,7 @@ function CartPageView() {
             <h2 className="font-semibold">Итого</h2>
             <div className="flex items-center justify-between">
               <span className="text-sm text-[var(--shop-muted-foreground)]">Товаров</span>
-              <span>{cart.summary.itemsCount}</span>
+              <span>{cart.summary.totalQuantity}</span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-[var(--shop-muted-foreground)]">Сумма</span>

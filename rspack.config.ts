@@ -17,9 +17,21 @@ const config: Configuration = {
     path: path.resolve(dirname, "dist"),
   },
   devServer: {
+    headers: {
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Origin": "*",
+    },
     historyApiFallback: true,
     hot: true,
     port: 3002,
+    proxy: [
+      {
+        context: ["/api"],
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+    ],
   },
   module: {
     rules: [
