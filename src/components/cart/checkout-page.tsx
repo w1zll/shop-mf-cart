@@ -38,7 +38,7 @@ function CheckoutPageView() {
         <div>
           <h1 className="text-3xl font-semibold tracking-normal">Оформление заказа</h1>
           <p className="mt-2 text-sm text-[var(--shop-muted-foreground)]">
-            Mock форма checkout без отправки в API.
+            Форма checkout пока не создаёт заказ, но читает актуальную корзину из API.
           </p>
         </div>
 
@@ -79,7 +79,7 @@ function CheckoutPageView() {
         <h2 className="font-semibold">Сводка</h2>
         <div className="flex items-center justify-between text-sm">
           <span className="text-[var(--shop-muted-foreground)]">Товаров</span>
-          <span>{cart.summary.itemsCount}</span>
+          <span>{cart.summary.totalQuantity}</span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-sm text-[var(--shop-muted-foreground)]">Итого</span>

@@ -62,8 +62,8 @@ export function Label(props: ElementProps<"label">) {
   return <label {...props} />;
 }
 
-export function LoadingState({ title }: Readonly<{ title: string }>) {
-  return <p>{title}</p>;
+export function LoadingState({ label, title }: Readonly<{ label?: string; title?: string }>) {
+  return <p>{label ?? title}</p>;
 }
 
 export function Logo() {

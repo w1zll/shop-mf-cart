@@ -2,27 +2,28 @@ import { ShoppingCart } from "lucide-react";
 import { Button } from "@w1zll/shop-ui";
 
 import { CartStoreProvider, useCartStore } from "../../lib/cart-store";
-import { getMockProducts } from "../../lib/mock-cart-repository";
 
-interface AddToCartButtonProps {
-  productId?: string;
+export interface AddToCartButtonProps {
+  className?: string;
+  disabled?: boolean;
+  maxQuantity?: number;
+  productId: string;
 }
 
-function AddToCartButtonView({ productId }: AddToCartButtonProps) {
+function AddToCartButtonView({
+  className,
+  disabled = false,
+  maxQuantity = 1,
+  productId,
+}: AddToCartButtonProps) {
   const { addItem } = useCartStore();
-  const fallbackProduct = getMockProducts()[0] ?? {
-    id: "prod_fallback",
-    name: "Тестовый товар",
-    slug: "fallback-product",
-    priceCents: 0,
-    stock: 1,
-  };
-  const selectedProductId = productId ?? fallbackProduct.id;
 
   return (
     <Button
+      className={className}
+      disabled={disabled || maxQuantity < 1}
       onClick={() => {
-        addItem(selectedProductId);
+        addItem(productId, 1);
       }}
       type="button"
     >

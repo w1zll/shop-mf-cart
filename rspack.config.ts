@@ -25,6 +25,13 @@ const config: Configuration = {
     historyApiFallback: true,
     hot: true,
     port: 3002,
+    proxy: [
+      {
+        context: ["/api"],
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+    ],
   },
   module: {
     rules: [
