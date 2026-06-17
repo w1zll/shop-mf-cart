@@ -7,7 +7,6 @@ import { CartDrawer } from "../components/cart/cart-drawer";
 import { CartIndicator } from "../components/cart/cart-indicator";
 import { CartPage } from "../components/cart/cart-page";
 import { CheckoutPage } from "../components/cart/checkout-page";
-import { getMockProducts } from "../lib/mock-cart-repository";
 
 const routes = ["/", "/cart", "/checkout", "/components"] as const;
 type StandaloneRoute = (typeof routes)[number];
@@ -102,12 +101,11 @@ function StandaloneRouteContent({ route }: Readonly<{ route: StandaloneRoute }>)
         <section className="space-y-4">
           <h1 className="text-3xl font-semibold tracking-normal">Компоненты cart remote</h1>
           <p className="text-sm text-[var(--shop-muted-foreground)]">
-            Здесь можно проверить exposed-компоненты до подключения shell.
+            Здесь можно проверить exposed-компоненты до подключения shell. Для добавления товара
+            нужен реальный productId из API.
           </p>
           <div className="flex flex-wrap gap-3">
-            {getMockProducts().map((product) => (
-              <AddToCartButton key={product.id} productId={product.id} />
-            ))}
+            <AddToCartButton productId="prod_airbeat_lite" />
           </div>
         </section>
         <CartDrawer />
@@ -120,11 +118,11 @@ function StandaloneRouteContent({ route }: Readonly<{ route: StandaloneRoute }>)
       <div className="max-w-3xl space-y-3">
         <h1 className="text-3xl font-semibold tracking-normal">Cart remote</h1>
         <p className="text-base leading-7 text-[var(--shop-muted-foreground)]">
-          Standalone-приложение для разработки корзины. Сейчас используется mock repository без API.
+          Standalone-приложение для разработки корзины. Данные загружаются через Cart API.
         </p>
       </div>
       <div className="flex flex-wrap gap-3">
-        <AddToCartButton />
+        <AddToCartButton productId="prod_airbeat_lite" />
         <Button asChild variant="outline">
           <a href="/cart">Открыть корзину</a>
         </Button>

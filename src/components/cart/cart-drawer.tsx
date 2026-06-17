@@ -6,7 +6,7 @@ function CartDrawerView() {
   const { cart, removeItem, state, updateQuantity } = useCartStore();
 
   if (state === "loading") {
-    return <LoadingState title="Загружаем корзину" />;
+    return <LoadingState label="Загружаем корзину" />;
   }
 
   if (state === "error") {
@@ -17,11 +17,11 @@ function CartDrawerView() {
     <aside className="w-full max-w-md space-y-4 rounded-lg border border-[var(--shop-border)] bg-[var(--shop-card)] p-4 shadow-[var(--shop-shadow-md)]">
       <div>
         <h2 className="text-lg font-semibold">Мини-корзина</h2>
-        <p className="text-sm text-[var(--shop-muted-foreground)]">Mock состояние cart remote.</p>
+        <p className="text-sm text-[var(--shop-muted-foreground)]">Данные из Cart API.</p>
       </div>
 
       {cart.items.length === 0 ? (
-        <EmptyState description="Добавьте товар из демо-списка." title="Корзина пуста" />
+        <EmptyState description="Добавьте товар из каталога." title="Корзина пуста" />
       ) : (
         <div className="space-y-3">
           {cart.items.map((item) => (
