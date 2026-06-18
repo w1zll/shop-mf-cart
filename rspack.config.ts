@@ -30,6 +30,11 @@ const config: Configuration = {
         context: ["/api"],
         target: "http://localhost:4000",
         changeOrigin: true,
+        on: {
+          proxyReq(proxyReq) {
+            proxyReq.setHeader("origin", "http://localhost:3000");
+          },
+        },
       },
     ],
   },

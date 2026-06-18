@@ -52,6 +52,8 @@ http://localhost:4000
 
 Standalone dev-server проксирует `/api/*` на `http://localhost:4000`, поэтому компоненты могут
 использовать same-origin запросы даже при запуске remote отдельно.
+При проксировании dev-server отправляет в API `Origin: http://localhost:3000`, потому что
+локальная проверка CSRF/Origin в `shop-api` доверяет shell-origin.
 
 ## Standalone routes
 
@@ -129,7 +131,8 @@ cartSummary
 ```
 
 После успешных mutations remote обновляет query cache, отправляет browser event
-`shop:cart-changed` и сообщение в `BroadcastChannel` `shop:cart`.
+`shop:cart-changed` и сообщение в `BroadcastChannel` `shop:cart`. Имена события и канала
+берутся из `@w1zll/shop-ui/contracts`, чтобы shell, catalog и remotes использовали один контракт.
 
 `AddToCartButton` принимает только минимальный контракт:
 
