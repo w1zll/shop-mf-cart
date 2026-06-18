@@ -1,4 +1,4 @@
-import { Cart, CartSummary } from "./cart-types";
+import { Cart, CartSummary, CreateOrderPayload, Order } from "./cart-types";
 
 const API_BASE_URL = "/api/v1";
 const unsafeMethods = new Set(["POST", "PATCH", "PUT", "DELETE"]);
@@ -100,4 +100,18 @@ export function clearCart() {
   return requestApi<Cart>("/cart", {
     method: "DELETE",
   }).then(normalizeCart);
+}
+
+export function createOrder(payload: CreateOrderPayload) {
+  return requestApi<Order>("/orders", {
+    body: JSON.stringify(payload),
+    method: "POST",
+  });
+}
+
+export function payOrderMock(orderId: string, idempotencyKey: string) {
+  return requestApi<Order>(`/orders/${orderId}/pay/mock`, {
+    body: JSON.stringify({ idempotencyKey }),
+    method: "POST",
+  });
 }
