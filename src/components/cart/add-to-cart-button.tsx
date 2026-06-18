@@ -1,6 +1,7 @@
 import { ShoppingCart } from "lucide-react";
 import { Button } from "@w1zll/shop-ui";
 
+import "../../remote-styles";
 import { CartStoreProvider, useCartStore } from "../../lib/cart-store";
 
 export interface AddToCartButtonProps {

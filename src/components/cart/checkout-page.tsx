@@ -3,6 +3,7 @@ import { Button, Container, Input, Label, Price } from "@w1zll/shop-ui";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import "../../remote-styles";
 import { CartStoreProvider, useCartStore } from "../../lib/cart-store";
 
 const checkoutSchema = z.object({
