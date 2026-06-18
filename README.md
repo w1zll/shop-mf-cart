@@ -12,7 +12,7 @@
 - клиентское состояние корзины;
 - exposed-компоненты для shell/catalog через Module Federation.
 
-На текущем этапе cart remote подключён к Cart API через browser-запросы к `/api/v1`.
+На текущем этапе cart remote подключён к Cart API и Orders API через browser-запросы к `/api/v1`.
 
 ## Технологии
 
@@ -145,6 +145,36 @@ className
 
 Компонент не получает весь Product.
 
+## Checkout UI
+
+`CheckoutPage` использует React Hook Form и Zod. Форма разбита на простые шаги:
+
+```text
+Контакты
+Доставка
+Подтверждение
+Имитация оплаты
+```
+
+После подтверждения remote вызывает:
+
+```text
+POST /api/v1/orders
+```
+
+После создания заказа шаг оплаты вызывает:
+
+```text
+POST /api/v1/orders/:id/pay/mock
+```
+
+Для mock payment генерируется `idempotencyKey`. После успешной оплаты remote отправляет событие
+изменения корзины и переводит пользователя на:
+
+```text
+/checkout/success?orderId=...
+```
+
 ## Проверки
 
 ```bash
@@ -157,4 +187,4 @@ pnpm build
 ## Текущие ограничения
 
 - standalone-кнопка добавления требует реальный `productId` из API;
-- checkout форма пока не создаёт заказ.
+- страница `/checkout/success` будет оформлена в shell на следующем consumer-этапе.
