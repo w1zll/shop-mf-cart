@@ -105,7 +105,7 @@ function StandaloneRouteContent({ route }: Readonly<{ route: StandaloneRoute }>)
             нужен реальный productId из API.
           </p>
           <div className="flex flex-wrap gap-3">
-            <AddToCartButton productId="prod_airbeat_lite" />
+            <AddToCartButton productId="cmqf30a900006qcu0pvxdn8jr" />
           </div>
         </section>
         <CartDrawer />
@@ -122,7 +122,7 @@ function StandaloneRouteContent({ route }: Readonly<{ route: StandaloneRoute }>)
         </p>
       </div>
       <div className="flex flex-wrap gap-3">
-        <AddToCartButton productId="prod_airbeat_lite" />
+        <AddToCartButton productId="cmqf30a900006qcu0pvxdn8jr" />
         <Button asChild variant="outline">
           <a href="/cart">Открыть корзину</a>
         </Button>
