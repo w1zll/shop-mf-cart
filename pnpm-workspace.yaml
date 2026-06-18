@@ -1,2 +1,4 @@
 packages:
   - "."
+minimumReleaseAgeExclude:
+  - '@w1zll/shop-ui@0.2.0'
