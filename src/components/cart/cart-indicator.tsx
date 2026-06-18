@@ -1,6 +1,7 @@
 import { ShoppingCart } from "lucide-react";
 import { Badge, Button, Price } from "@w1zll/shop-ui";
 
+import "../../remote-styles";
 import { CartStoreProvider, useCartStore } from "../../lib/cart-store";
 
 function CartIndicatorView() {
