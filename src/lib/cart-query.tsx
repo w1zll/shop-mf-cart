@@ -1,4 +1,10 @@
-import { QueryClient, QueryClientProvider, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import {
+  QueryClient,
+  QueryClientProvider,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { ReactNode, useEffect, useMemo } from "react";
 
 import {
@@ -9,7 +15,7 @@ import {
   removeCartItem,
   updateCartItem,
 } from "./cart-api";
-import { notifyCartChanged, subscribeCartChanged } from "./cart-events";
+import { notifyCartChanged, subscribeAuthChanged, subscribeCartChanged } from "./cart-events";
 import { Cart, CartSummary, emptyCart } from "./cart-types";
 
 export const cartQueryKeys = {
@@ -70,13 +76,23 @@ export function useCartSummaryQuery() {
 export function useCartInvalidationSubscription() {
   const queryClient = useQueryClient();
 
-  useEffect(
-    () =>
-      subscribeCartChanged(() => {
-        invalidateCartQueries(queryClient);
-      }),
-    [queryClient],
-  );
+  useEffect(() => {
+    const unsubscribeCartChanged = subscribeCartChanged(() => {
+      invalidateCartQueries(queryClient);
+    });
+    const unsubscribeAuthChanged = subscribeAuthChanged((isAuthenticated) => {
+      if (!isAuthenticated) {
+        updateCartCaches(queryClient, emptyCart);
+      }
+
+      invalidateCartQueries(queryClient);
+    });
+
+    return () => {
+      unsubscribeCartChanged();
+      unsubscribeAuthChanged();
+    };
+  }, [queryClient]);
 }
 
 export function useAddCartItemMutation() {

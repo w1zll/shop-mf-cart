@@ -1,9 +1,19 @@
-import { Cart, CartSummary, CreateOrderPayload, Order } from "./cart-types";
+﻿import { Cart, CartSummary, CreateOrderPayload, Order } from "./cart-types";
 
 const API_BASE_URL = "/api/v1";
 const unsafeMethods = new Set(["POST", "PATCH", "PUT", "DELETE"]);
 
 let csrfToken: string | null = null;
+let refreshPromise: Promise<void> | null = null;
+
+class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
 
 async function ensureCsrfToken() {
   if (csrfToken) {
@@ -28,7 +38,27 @@ async function ensureCsrfToken() {
   return csrfToken;
 }
 
-async function requestApi<TResponse>(path: string, init: RequestInit = {}) {
+async function refreshAccessToken() {
+  refreshPromise ??= (async () => {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      credentials: "include",
+      headers: {
+        "X-CSRF-Token": await ensureCsrfToken(),
+      },
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      throw new ApiError("Не удалось обновить сессию", response.status);
+    }
+  })().finally(() => {
+    refreshPromise = null;
+  });
+
+  return refreshPromise;
+}
+
+async function sendApiRequest(path: string, init: RequestInit) {
   const method = init.method ?? "GET";
   const headers = new Headers(init.headers);
 
@@ -40,16 +70,40 @@ async function requestApi<TResponse>(path: string, init: RequestInit = {}) {
     headers.set("X-CSRF-Token", await ensureCsrfToken());
   }
 
-  const response = await fetch(`${API_BASE_URL}${path}`, {
+  return fetch(`${API_BASE_URL}${path}`, {
     ...init,
     credentials: "include",
     headers,
     method,
   });
+}
+
+async function readApiError(response: Response) {
+  const errorBody = (await response.json().catch(() => null)) as { message?: string } | null;
+  return new ApiError(
+    errorBody?.message ?? `Cart API вернул HTTP ${String(response.status)}`,
+    response.status,
+  );
+}
+
+async function requestApi<TResponse>(
+  path: string,
+  init: RequestInit = {},
+  retryOnUnauthorized = true,
+) {
+  const response = await sendApiRequest(path, init);
+
+  if (response.status === 401 && retryOnUnauthorized && !path.startsWith("/auth/")) {
+    try {
+      await refreshAccessToken();
+      return await requestApi<TResponse>(path, init, false);
+    } catch {
+      throw await readApiError(response);
+    }
+  }
 
   if (!response.ok) {
-    const errorBody = (await response.json().catch(() => null)) as { message?: string } | null;
-    throw new Error(errorBody?.message ?? `Cart API вернул HTTP ${String(response.status)}`);
+    throw await readApiError(response);
   }
 
   return (await response.json()) as TResponse;
