@@ -1,4 +1,4 @@
-import {
+﻿import {
   dispatchShopEvent,
   SHOP_BROADCAST_CHANNELS,
   SHOP_EVENTS,
@@ -6,6 +6,7 @@ import {
 } from "@w1zll/shop-ui/contracts";
 
 export const CART_CHANGED_EVENT = SHOP_EVENTS.cartChanged;
+export const AUTH_CHANGED_EVENT = SHOP_EVENTS.authChanged;
 export const CART_BROADCAST_CHANNEL = SHOP_BROADCAST_CHANNELS.cart;
 
 type CartBroadcastMessage = {
@@ -56,4 +57,13 @@ export function subscribeCartChanged(callback: () => void) {
     unsubscribeWindowEvent();
     channel?.removeEventListener("message", handleChannelMessage);
   };
+}
+export function subscribeAuthChanged(callback: (isAuthenticated: boolean) => void) {
+  if (typeof window === "undefined") {
+    return () => undefined;
+  }
+
+  return subscribeShopEvent(AUTH_CHANGED_EVENT, (event) => {
+    callback(event.detail.isAuthenticated);
+  });
 }
