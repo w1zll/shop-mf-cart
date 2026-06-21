@@ -18,8 +18,8 @@ importers:
         specifier: 5.101.0
         version: 5.101.0(react@19.2.7)
       '@w1zll/shop-ui':
-        specifier: 0.2.0
-        version: 0.2.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: 0.2.1
+        version: 0.2.1(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       lucide-react:
         specifier: 1.18.0
         version: 1.18.0(react@19.2.7)
@@ -1222,8 +1222,8 @@ packages:
   '@vitest/utils@4.1.8':
     resolution: {integrity: sha512-uOJamYALNhfJ6iolExyQM40yIQwDqYnkKtQ5VCiSe17E33H0aQ/u+1GlRuz4LZBk6Mm3sg90G9hEbmEt37C1Zg==}
 
-  '@w1zll/shop-ui@0.2.0':
-    resolution: {integrity: sha512-ycnqPfQkQNVIvaCSnaib5ioAFVSFrBZIznUZ6IBqiuxc6tYs/dIT0o5yAoxLsLDwZTuHgON8QZ1lTDR2N6WYTw==, tarball: https://npm.pkg.github.com/download/@w1zll/shop-ui/0.2.0/21a38617bb12c24c8f8f1c9efb2b4875dfa43979}
+  '@w1zll/shop-ui@0.2.1':
+    resolution: {integrity: sha512-BQBmkhuFWdObDMkp9la6fEBmRQf80DpcOBY1StA3cHKXCum+P2NHkWV9BRKZdu6XdOXwQ23tX5MwbPrwqedWgA==, tarball: https://npm.pkg.github.com/download/@w1zll/shop-ui/0.2.1/e0a1d84e9f6347e156020de3c3305a37c1656244}
     engines: {node: '>=24.0.0', pnpm: '>=11.6.0'}
     peerDependencies:
       react: 19.2.7
@@ -3631,7 +3631,7 @@ snapshots:
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.0
 
-  '@w1zll/shop-ui@0.2.0(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@w1zll/shop-ui@0.2.1(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@radix-ui/react-avatar': 1.1.12(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@radix-ui/react-checkbox': 1.3.4(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
