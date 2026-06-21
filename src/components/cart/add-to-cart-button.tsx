@@ -18,11 +18,15 @@ function AddToCartButtonView({
   productId,
 }: AddToCartButtonProps) {
   const { addItem } = useCartStore();
+  const isDisabled = disabled || maxQuantity < 1;
+  const buttonClassName = [isDisabled ? undefined : "cursor-pointer", className]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <Button
-      className={className}
-      disabled={disabled || maxQuantity < 1}
+      className={buttonClassName}
+      disabled={isDisabled}
       onClick={() => {
         addItem(productId, 1);
       }}
