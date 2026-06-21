@@ -13,6 +13,10 @@ function createResponse(body: unknown, status = 200) {
   } as Response;
 }
 
+function getRequestUrl(input: RequestInfo | URL) {
+  return typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+}
+
 const cartResponse = {
   id: "cart-1",
   isAnonymous: false,
@@ -66,9 +70,42 @@ afterEach(() => {
 });
 
 describe("CheckoutPage", () => {
+  it("keeps checkout on contacts step when required contact fields are empty", async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = getRequestUrl(input);
+
+      if (url.endsWith("/cart")) {
+        return Promise.resolve(createResponse(cartResponse));
+      }
+
+      return Promise.resolve(createResponse({ message: "Unexpected request" }, 500));
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<CheckoutPage />);
+
+    const user = userEvent.setup();
+
+    expect(await screen.findByRole("heading", { name: "Оформление заказа" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Далее" }));
+
+    expect(await screen.findByText("Укажите имя")).toBeInTheDocument();
+    expect(screen.getByText("Укажите телефон")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Город")).not.toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.some(([input]) => {
+        const url = getRequestUrl(input);
+
+        return url.endsWith("/orders");
+      }),
+    ).toBe(false);
+  });
+
   it("creates order from checkout form and opens mock payment step", async () => {
     const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
-      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      const url = getRequestUrl(input);
 
       if (url.endsWith("/cart")) {
         return Promise.resolve(createResponse(cartResponse));
