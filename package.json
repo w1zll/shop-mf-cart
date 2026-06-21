@@ -17,6 +17,7 @@
     "lint": "eslint .",
     "preview": "rspack serve --host 0.0.0.0 --port 3002 --mode production",
     "test": "vitest run",
+    "test:mf-contracts": "rspack build && vitest run src/module-federation.contract.test.tsx",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
