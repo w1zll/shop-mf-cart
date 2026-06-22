@@ -5,6 +5,17 @@ import { fileURLToPath } from "node:url";
 
 const reactVersion = "19.2.7";
 const dirname = path.dirname(fileURLToPath(import.meta.url));
+const defaultApiOrigin = "http://localhost:4000";
+const defaultApiRequestOrigin = "http://localhost:3000";
+
+function normalizeOrigin(value: string | undefined, fallback: string) {
+  const rawValue = value?.trim() || fallback;
+
+  return new URL(rawValue).origin;
+}
+
+const apiOrigin = normalizeOrigin(process.env.API_ORIGIN, defaultApiOrigin);
+const apiRequestOrigin = normalizeOrigin(process.env.API_REQUEST_ORIGIN, defaultApiRequestOrigin);
 
 const config: Configuration = {
   context: dirname,
@@ -28,11 +39,11 @@ const config: Configuration = {
     proxy: [
       {
         context: ["/api"],
-        target: "http://localhost:4000",
+        target: apiOrigin,
         changeOrigin: true,
         on: {
           proxyReq(proxyReq) {
-            proxyReq.setHeader("origin", "http://localhost:3000");
+            proxyReq.setHeader("origin", apiRequestOrigin);
           },
         },
       },
