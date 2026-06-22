@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - dev
+      - main
+      - master
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.6.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          cache: pnpm
+          node-version: 24
+
+      - name: Configure GitHub Packages auth
+        run: pnpm config set //npm.pkg.github.com/:_authToken "${NODE_AUTH_TOKEN}"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN || github.token }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Module Federation contract tests
+        run: pnpm test:mf-contracts
