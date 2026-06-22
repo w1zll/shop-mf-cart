@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "corepack enable && pnpm config set @w1zll:registry https://npm.pkg.github.com && pnpm config set '//npm.pkg.github.com/:_authToken' \"$NPM_TOKEN\" && pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist"
+}
