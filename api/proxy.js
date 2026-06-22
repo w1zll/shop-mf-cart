@@ -3,6 +3,7 @@ const DEFAULT_API_REQUEST_ORIGIN = "http://localhost:3000";
 
 const HOP_BY_HOP_HEADERS = new Set([
   "connection",
+  "content-encoding",
   "content-length",
   "host",
   "keep-alive",
