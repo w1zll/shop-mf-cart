@@ -15,11 +15,3 @@ body {
   background: var(--shop-background);
   color: var(--shop-foreground);
 }
-
-@media (max-width: 639px) {
-  input:not([type="checkbox"]):not([type="radio"]),
-  select,
-  textarea {
-    font-size: 16px;
-  }
-}

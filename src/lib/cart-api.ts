@@ -175,6 +175,10 @@ export function createOrder(payload: CreateOrderPayload) {
   });
 }
 
+export function getOrder(orderId: string) {
+  return requestApi<Order>(`/orders/${orderId}`);
+}
+
 export function payOrderMock(orderId: string, idempotencyKey: string) {
   return requestApi<Order>(`/orders/${orderId}/pay/mock`, {
     body: JSON.stringify({ idempotencyKey }),

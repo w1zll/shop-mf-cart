@@ -31,6 +31,7 @@ function createCartResponse(subtotalCents = 125_000): Cart {
 function createOrderResponse(): Order {
   return {
     bonusSpentCents: 0,
+    earnedBonusCents: 0,
     createdAt: "2026-01-01T00:00:00.000Z",
     deliveryAddress: {},
     deliveryCents: 0,

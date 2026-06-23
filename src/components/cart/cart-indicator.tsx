@@ -11,7 +11,7 @@ function CartIndicatorView() {
     <Button asChild className="relative gap-2" variant="outline">
       <a href="/cart" aria-label={`Корзина, товаров: ${String(cart.summary.totalQuantity)}`}>
         <ShoppingCart className="size-4" aria-hidden="true" />
-        <span className="hidden sm:inline-flex">
+        <span className="hidden lg:inline-flex">
           <Price valueCents={cart.summary.totalCents} />
         </span>
         <Badge className="absolute -right-2 -top-2 px-1.5 py-0 text-[10px]">

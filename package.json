@@ -25,7 +25,7 @@
     "@hookform/resolvers": "5.4.0",
     "@module-federation/enhanced": "2.5.1",
     "@tanstack/react-query": "5.101.0",
-    "@w1zll/shop-ui": "0.2.1",
+    "@w1zll/shop-ui": "0.2.2",
     "lucide-react": "1.18.0",
     "react": "19.2.7",
     "react-dom": "19.2.7",
