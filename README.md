@@ -1,6 +1,6 @@
 # Shop Cart Remote
 
-`shop-mf-cart` - React remote для корзины демонстрационного магазина на микрофронтендах.
+`shop-mf-cart` - React remote для корзины интернет-магазина.
 
 ## Ответственность
 
@@ -11,8 +11,6 @@
 - страница checkout;
 - клиентское состояние корзины;
 - exposed-компоненты для shell/catalog через Module Federation.
-
-На текущем этапе cart remote подключён к Cart API и Orders API через browser-запросы к `/api/v1`.
 
 ## Технологии
 
@@ -31,7 +29,7 @@
 ## Локальная разработка
 
 Перед установкой зависимостей нужен доступ к GitHub Packages для `@w1zll/shop-ui`.
-Токен не хранится в репозитории. Registry для scope настроен в `.npmrc`, auth token должен быть в user-level `~/.npmrc`.
+Registry для scope настроен в `.npmrc`, auth token должен быть в user-level `~/.npmrc`.
 
 ```bash
 pnpm install
@@ -199,8 +197,3 @@ pnpm typecheck
 pnpm test
 pnpm build
 ```
-
-## Текущие ограничения
-
-- standalone-кнопка добавления требует реальный `productId` из API;
-- страница `/checkout/success` будет оформлена в shell на следующем consumer-этапе.
