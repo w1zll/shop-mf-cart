@@ -7,8 +7,9 @@ import { CartDrawer } from "../components/cart/cart-drawer";
 import { CartIndicator } from "../components/cart/cart-indicator";
 import { CartPage } from "../components/cart/cart-page";
 import { CheckoutPage } from "../components/cart/checkout-page";
+import { CheckoutSuccessPage } from "../components/cart/checkout-success-page";
 
-const routes = ["/", "/cart", "/checkout", "/components"] as const;
+const routes = ["/", "/cart", "/checkout", "/checkout/successful", "/components"] as const;
 type StandaloneRoute = (typeof routes)[number];
 
 function readRoute(): StandaloneRoute {
@@ -93,6 +94,10 @@ function StandaloneRouteContent({ route }: Readonly<{ route: StandaloneRoute }>)
 
   if (route === "/checkout") {
     return <CheckoutPage />;
+  }
+
+  if (route === "/checkout/successful") {
+    return <CheckoutSuccessPage />;
   }
 
   if (route === "/components") {

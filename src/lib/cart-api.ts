@@ -1,4 +1,4 @@
-﻿import { Cart, CartSummary, CreateOrderPayload, Order } from "./cart-types";
+﻿import { AuthResponse, Cart, CartSummary, CreateOrderPayload, Order } from "./cart-types";
 
 const API_BASE_URL = "/api/v1";
 const unsafeMethods = new Set(["POST", "PATCH", "PUT", "DELETE"]);
@@ -130,6 +130,18 @@ export function getCartSummary() {
   }));
 }
 
+export async function getCurrentUser() {
+  try {
+    return await requestApi<AuthResponse>("/users/me");
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
 export function addCartItem(productId: string, quantity = 1) {
   return requestApi<Cart>("/cart/items", {
     body: JSON.stringify({ productId, quantity }),
@@ -161,6 +173,10 @@ export function createOrder(payload: CreateOrderPayload) {
     body: JSON.stringify(payload),
     method: "POST",
   });
+}
+
+export function getOrder(orderId: string) {
+  return requestApi<Order>(`/orders/${orderId}`);
 }
 
 export function payOrderMock(orderId: string, idempotencyKey: string) {

@@ -1,21 +1,35 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Container, ErrorState, Input, Label, LoadingState, Price } from "@w1zll/shop-ui";
-import { useMemo, useState } from "react";
+import {
+  Button,
+  Container,
+  EmptyState,
+  ErrorState,
+  Input,
+  Label,
+  LoadingState,
+  Price,
+} from "@w1zll/shop-ui";
+import { type BaseSyntheticEvent, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import "../../remote-styles";
-import { createOrder, payOrderMock } from "../../lib/cart-api";
+import { createOrder, getCurrentUser, payOrderMock } from "../../lib/cart-api";
 import { notifyCartChanged } from "../../lib/cart-events";
 import { CartStoreProvider, useCartStore } from "../../lib/cart-store";
 import { Order } from "../../lib/cart-types";
 
 const checkoutSteps = ["contacts", "delivery", "confirm", "payment"] as const;
 type CheckoutStep = (typeof checkoutSteps)[number];
+type AuthState = "loading" | "authenticated" | "anonymous" | "error";
 
 const checkoutSchema = z.object({
   apartment: z.string().optional(),
-  bonusToSpend: z.coerce.number().int().min(0, "Бонусы не могут быть отрицательными").default(0),
+  bonusToSpend: z.coerce
+    .number()
+    .min(0, "Бонусы не могут быть отрицательными")
+    .multipleOf(0.01, "Укажите сумму с точностью не более двух знаков")
+    .default(0),
   city: z.string().min(2, "Укажите город"),
   deliveryMethod: z.enum(["PICKUP", "COURIER"]),
   house: z.string().min(1, "Укажите дом"),
@@ -59,6 +73,8 @@ function getPreviousStep(step: CheckoutStep): CheckoutStep {
 
 function CheckoutPageView() {
   const { cart, state } = useCartStore();
+  const [authState, setAuthState] = useState<AuthState>("loading");
+  const [bonusBalanceCents, setBonusBalanceCents] = useState(0);
   const [step, setStep] = useState<CheckoutStep>("contacts");
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -70,7 +86,9 @@ function CheckoutPageView() {
     getValues,
     handleSubmit,
     register,
+    setError,
     trigger,
+    watch,
   } = useForm<CheckoutFormInput, unknown, CheckoutFormValues>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
@@ -87,6 +105,34 @@ function CheckoutPageView() {
   });
 
   const isBusy = isSubmitting || isCreatingOrder || isPaying;
+  const bonusToSpendRubles = Number(watch("bonusToSpend") ?? 0);
+  const requestedBonusCents = Number.isFinite(bonusToSpendRubles)
+    ? Math.max(0, Math.round(bonusToSpendRubles * 100))
+    : 0;
+  const maxBonusToSpendCents = Math.min(bonusBalanceCents, cart.summary.totalCents);
+  const appliedBonusCents = Math.min(requestedBonusCents, maxBonusToSpendCents);
+  const amountDueCents = Math.max(0, cart.summary.totalCents - appliedBonusCents);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    getCurrentUser()
+      .then((response) => {
+        if (isCurrent) {
+          setAuthState(response?.user ? "authenticated" : "anonymous");
+          setBonusBalanceCents(response?.user.bonusBalanceCents ?? 0);
+        }
+      })
+      .catch(() => {
+        if (isCurrent) {
+          setAuthState("error");
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
   async function goNext() {
     setFormError(null);
@@ -110,13 +156,27 @@ function CheckoutPageView() {
       return;
     }
 
+    if (authState !== "authenticated") {
+      setFormError("Войдите в аккаунт, чтобы оформить заказ.");
+      return;
+    }
+
+    const bonusToSpendCents = Math.round(values.bonusToSpend * 100);
+
+    if (bonusToSpendCents > maxBonusToSpendCents) {
+      setError("bonusToSpend", {
+        message: "Нельзя списать больше доступных бонусов или суммы заказа",
+      });
+      return;
+    }
+
     setFormError(null);
     setIsCreatingOrder(true);
 
     try {
       const order = await createOrder({
         apartment: values.apartment?.trim() || undefined,
-        bonusToSpend: values.bonusToSpend,
+        bonusToSpend: bonusToSpendCents,
         city: values.city,
         deliveryMethod: values.deliveryMethod,
         house: values.house,
@@ -135,6 +195,21 @@ function CheckoutPageView() {
     }
   }
 
+  function submitCurrentStep(event: BaseSyntheticEvent) {
+    event.preventDefault();
+
+    if (step === "payment") {
+      return;
+    }
+
+    if (step === "confirm") {
+      void handleSubmit(onSubmit)(event);
+      return;
+    }
+
+    void goNext();
+  }
+
   async function payOrder() {
     if (!createdOrder) {
       return;
@@ -147,7 +222,7 @@ function CheckoutPageView() {
       const paidOrder = await payOrderMock(createdOrder.id, idempotencyKey);
 
       notifyCartChanged();
-      window.location.assign(`/checkout/success?orderId=${encodeURIComponent(paidOrder.id)}`);
+      window.location.assign(`/checkout/successful?orderId=${encodeURIComponent(paidOrder.id)}`);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Не удалось выполнить mock payment.");
       setIsPaying(false);
@@ -158,12 +233,48 @@ function CheckoutPageView() {
     return <LoadingState label="Загружаем корзину для оформления" />;
   }
 
+  if (authState === "loading") {
+    return <LoadingState label="Проверяем сессию" />;
+  }
+
   if (state === "error") {
     return (
       <Container className="py-8">
         <ErrorState
           title="Checkout временно недоступен"
           description="Cart API не отвечает. Попробуйте обновить страницу."
+        />
+      </Container>
+    );
+  }
+
+  if (authState === "error") {
+    return (
+      <Container className="py-8">
+        <ErrorState
+          title="Не удалось проверить сессию"
+          description="Обновите страницу или попробуйте войти заново."
+        />
+      </Container>
+    );
+  }
+
+  if (authState === "anonymous") {
+    return (
+      <Container className="py-8">
+        <EmptyState
+          action={
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button asChild>
+                <a href="/login">Войти</a>
+              </Button>
+              <Button asChild variant="outline">
+                <a href="/register">Создать аккаунт</a>
+              </Button>
+            </div>
+          }
+          description="Оформление заказа доступно только для авторизованных покупателей."
+          title="Нужно войти"
         />
       </Container>
     );
@@ -205,9 +316,7 @@ function CheckoutPageView() {
 
         <form
           className="space-y-5"
-          onSubmit={(event) => {
-            void handleSubmit(onSubmit)(event);
-          }}
+          onSubmit={submitCurrentStep}
         >
           {step === "contacts" ? (
             <div className="grid gap-4 sm:grid-cols-2">
@@ -239,7 +348,7 @@ function CheckoutPageView() {
               </FieldError>
               <FieldError htmlFor="deliveryMethod" label="Способ доставки" error={errors.deliveryMethod?.message}>
                 <select
-                  className="h-10 w-full rounded-md border border-[var(--shop-input)] bg-[var(--shop-background)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--shop-ring)]"
+                  className="h-10 w-full rounded-md border border-[var(--shop-input)] bg-[var(--shop-background)] px-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-[var(--shop-ring)] sm:text-sm"
                   id="deliveryMethod"
                   {...register("deliveryMethod")}
                 >
@@ -266,9 +375,24 @@ function CheckoutPageView() {
                   />
                 </dl>
               </div>
-              <FieldError htmlFor="bonusToSpend" label="Бонусы к списанию" error={errors.bonusToSpend?.message}>
-                <Input id="bonusToSpend" min={0} type="number" {...register("bonusToSpend")} />
+              <FieldError
+                htmlFor="bonusToSpend"
+                label="Бонусы к списанию, ₽"
+                error={errors.bonusToSpend?.message}
+              >
+                <Input
+                  id="bonusToSpend"
+                  inputMode="decimal"
+                  max={maxBonusToSpendCents / 100}
+                  min={0}
+                  step="0.01"
+                  type="number"
+                  {...register("bonusToSpend")}
+                />
               </FieldError>
+              <p className="text-sm text-[var(--shop-muted-foreground)]">
+                Доступно: <Price valueCents={bonusBalanceCents} />
+              </p>
             </div>
           ) : null}
 
@@ -309,13 +433,7 @@ function CheckoutPageView() {
                   {isCreatingOrder ? "Создаём заказ..." : "Создать заказ"}
                 </Button>
               ) : (
-                <Button
-                  disabled={isBusy || cart.items.length === 0}
-                  onClick={() => {
-                    void goNext();
-                  }}
-                  type="button"
-                >
+                <Button disabled={isBusy || cart.items.length === 0} type="submit">
                   Далее
                 </Button>
               )}
@@ -335,9 +453,21 @@ function CheckoutPageView() {
             </div>
           ))}
         </div>
-        <div className="flex items-center justify-between border-t border-[var(--shop-border)] pt-3">
-          <span className="text-sm text-[var(--shop-muted-foreground)]">Итого</span>
-          <Price className="font-semibold" valueCents={cart.summary.totalCents} />
+        <div className="space-y-2 border-t border-[var(--shop-border)] pt-3">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-[var(--shop-muted-foreground)]">Сумма заказа</span>
+            <Price valueCents={cart.summary.totalCents} />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm text-[var(--shop-muted-foreground)]">Бонусы к списанию</span>
+            <span className="text-sm font-medium">
+              -<Price valueCents={appliedBonusCents} />
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-3 border-t border-[var(--shop-border)] pt-3">
+            <span className="font-medium">К оплате</span>
+            <Price className="font-semibold" valueCents={amountDueCents} />
+          </div>
         </div>
       </aside>
     </Container>

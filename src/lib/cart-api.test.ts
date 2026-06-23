@@ -31,6 +31,7 @@ function createCartResponse(subtotalCents = 125_000): Cart {
 function createOrderResponse(): Order {
   return {
     bonusSpentCents: 0,
+    earnedBonusCents: 0,
     createdAt: "2026-01-01T00:00:00.000Z",
     deliveryAddress: {},
     deliveryCents: 0,
@@ -162,5 +163,24 @@ describe("cart API client", () => {
       expect.objectContaining({ credentials: "include", method: "POST" }),
     );
     expect(getHeader(refreshInit, "X-CSRF-Token")).toBe("csrf-token");
+  });
+
+  it("returns null for an anonymous current user", async () => {
+    const fetchMock = createFetchMock();
+    fetchMock
+      .mockResolvedValueOnce(createResponse({ message: "Unauthorized" }, 401))
+      .mockResolvedValueOnce(createResponse({ csrfToken: "csrf-token" }))
+      .mockResolvedValueOnce(createResponse({ message: "Unauthorized" }, 401));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { getCurrentUser } = await import("./cart-api");
+
+    await expect(getCurrentUser()).resolves.toBeNull();
+
+    expect(fetchMock.mock.calls.map(([input]) => getRequestUrl(input))).toEqual([
+      "/api/v1/users/me",
+      "/api/v1/auth/csrf",
+      "/api/v1/auth/refresh",
+    ]);
   });
 });

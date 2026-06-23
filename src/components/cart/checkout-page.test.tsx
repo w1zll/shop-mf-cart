@@ -54,6 +54,7 @@ const orderResponse = {
   subtotalCents: 100000,
   discountCents: 0,
   bonusSpentCents: 0,
+  earnedBonusCents: 0,
   deliveryCents: 0,
   totalCents: 100000,
   deliveryMethod: "PICKUP",
@@ -61,6 +62,15 @@ const orderResponse = {
   items: [],
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
+};
+
+const authResponse = {
+  user: {
+    bonusBalanceCents: 50_000,
+    id: "user-1",
+    email: "demo@example.com",
+    name: "Demo User",
+  },
 };
 
 afterEach(() => {
@@ -76,6 +86,10 @@ describe("CheckoutPage", () => {
 
       if (url.endsWith("/cart")) {
         return Promise.resolve(createResponse(cartResponse));
+      }
+
+      if (url.endsWith("/users/me")) {
+        return Promise.resolve(createResponse(authResponse));
       }
 
       return Promise.resolve(createResponse({ message: "Unexpected request" }, 500));
@@ -104,11 +118,15 @@ describe("CheckoutPage", () => {
   });
 
   it("creates order from checkout form and opens mock payment step", async () => {
-    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = getRequestUrl(input);
 
       if (url.endsWith("/cart")) {
         return Promise.resolve(createResponse(cartResponse));
+      }
+
+      if (url.endsWith("/users/me")) {
+        return Promise.resolve(createResponse(authResponse));
       }
 
       if (url.endsWith("/auth/csrf")) {
@@ -141,8 +159,11 @@ describe("CheckoutPage", () => {
     await user.selectOptions(screen.getByLabelText("Способ доставки"), "PICKUP");
     await user.click(screen.getByRole("button", { name: "Далее" }));
 
-    await user.clear(await screen.findByLabelText("Бонусы к списанию"));
-    await user.type(screen.getByLabelText("Бонусы к списанию"), "0");
+    await user.clear(await screen.findByLabelText("Бонусы к списанию, ₽"));
+    await user.type(screen.getByLabelText("Бонусы к списанию, ₽"), "125.50");
+
+    expect(screen.getByText("87450")).toBeInTheDocument();
+
     await user.click(screen.getByRole("button", { name: "Создать заказ" }));
 
     expect(await screen.findByRole("button", { name: "Оплатить mock payment" })).toBeInTheDocument();
@@ -152,5 +173,92 @@ describe("CheckoutPage", () => {
         method: "POST",
       }),
     );
+    const orderRequest = fetchMock.mock.calls.find(
+      ([input, init]) => getRequestUrl(input).endsWith("/orders") && init?.method === "POST",
+    );
+    const requestBody = orderRequest?.[1]?.body;
+
+    expect(typeof requestBody).toBe("string");
+
+    if (typeof requestBody !== "string") {
+      throw new Error("Expected JSON order request body");
+    }
+
+    const orderRequestBody = JSON.parse(requestBody) as {
+      bonusToSpend: number;
+    };
+
+    expect(orderRequestBody.bonusToSpend).toBe(12_550);
+  });
+
+  it("uses Enter to advance steps without creating an order before confirmation", async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = getRequestUrl(input);
+
+      if (url.endsWith("/cart")) {
+        return Promise.resolve(createResponse(cartResponse));
+      }
+
+      if (url.endsWith("/users/me")) {
+        return Promise.resolve(createResponse(authResponse));
+      }
+
+      return Promise.resolve(createResponse({ message: "Unexpected request" }, 500));
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<CheckoutPage />);
+
+    const user = userEvent.setup();
+
+    await screen.findByRole("heading", { name: "Оформление заказа" });
+    await user.type(screen.getByLabelText("Имя"), "Demo User");
+    await user.type(screen.getByLabelText("Телефон"), "+79990000000{Enter}");
+
+    await user.type(await screen.findByLabelText("Город"), "Moscow");
+    await user.type(screen.getByLabelText("Улица"), "Tverskaya");
+    await user.type(screen.getByLabelText("Дом"), "1");
+    await user.type(screen.getByLabelText("Индекс"), "101000{Enter}");
+
+    expect(await screen.findByRole("heading", { name: "Проверьте заказ" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Оплатить mock payment" })).not.toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.some(([input]) => getRequestUrl(input).endsWith("/orders")),
+    ).toBe(false);
+  });
+
+  it("asks anonymous users to sign in before checkout", async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = getRequestUrl(input);
+
+      if (url.endsWith("/cart")) {
+        return Promise.resolve(createResponse(cartResponse));
+      }
+
+      if (url.endsWith("/users/me")) {
+        return Promise.resolve(createResponse({ message: "Unauthorized" }, 401));
+      }
+
+      if (url.endsWith("/auth/csrf")) {
+        return Promise.resolve(createResponse({ csrfToken: "csrf-token" }));
+      }
+
+      if (url.endsWith("/auth/refresh")) {
+        return Promise.resolve(createResponse({ message: "Unauthorized" }, 401));
+      }
+
+      return Promise.resolve(createResponse({ message: "Unexpected request" }, 500));
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<CheckoutPage />);
+
+    expect(await screen.findByRole("heading", { name: "Нужно войти" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Войти" })).toHaveAttribute("href", "/login");
+    expect(
+      fetchMock.mock.calls.some(([input]) => getRequestUrl(input).endsWith("/orders")),
+    ).toBe(false);
   });
 });
