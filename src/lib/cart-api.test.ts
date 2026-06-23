@@ -163,4 +163,23 @@ describe("cart API client", () => {
     );
     expect(getHeader(refreshInit, "X-CSRF-Token")).toBe("csrf-token");
   });
+
+  it("returns null for an anonymous current user", async () => {
+    const fetchMock = createFetchMock();
+    fetchMock
+      .mockResolvedValueOnce(createResponse({ message: "Unauthorized" }, 401))
+      .mockResolvedValueOnce(createResponse({ csrfToken: "csrf-token" }))
+      .mockResolvedValueOnce(createResponse({ message: "Unauthorized" }, 401));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const { getCurrentUser } = await import("./cart-api");
+
+    await expect(getCurrentUser()).resolves.toBeNull();
+
+    expect(fetchMock.mock.calls.map(([input]) => getRequestUrl(input))).toEqual([
+      "/api/v1/users/me",
+      "/api/v1/auth/csrf",
+      "/api/v1/auth/refresh",
+    ]);
+  });
 });

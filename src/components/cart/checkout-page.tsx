@@ -1,17 +1,27 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Container, ErrorState, Input, Label, LoadingState, Price } from "@w1zll/shop-ui";
-import { useMemo, useState } from "react";
+import {
+  Button,
+  Container,
+  EmptyState,
+  ErrorState,
+  Input,
+  Label,
+  LoadingState,
+  Price,
+} from "@w1zll/shop-ui";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import "../../remote-styles";
-import { createOrder, payOrderMock } from "../../lib/cart-api";
+import { createOrder, getCurrentUser, payOrderMock } from "../../lib/cart-api";
 import { notifyCartChanged } from "../../lib/cart-events";
 import { CartStoreProvider, useCartStore } from "../../lib/cart-store";
 import { Order } from "../../lib/cart-types";
 
 const checkoutSteps = ["contacts", "delivery", "confirm", "payment"] as const;
 type CheckoutStep = (typeof checkoutSteps)[number];
+type AuthState = "loading" | "authenticated" | "anonymous" | "error";
 
 const checkoutSchema = z.object({
   apartment: z.string().optional(),
@@ -59,6 +69,7 @@ function getPreviousStep(step: CheckoutStep): CheckoutStep {
 
 function CheckoutPageView() {
   const { cart, state } = useCartStore();
+  const [authState, setAuthState] = useState<AuthState>("loading");
   const [step, setStep] = useState<CheckoutStep>("contacts");
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -88,6 +99,26 @@ function CheckoutPageView() {
 
   const isBusy = isSubmitting || isCreatingOrder || isPaying;
 
+  useEffect(() => {
+    let isCurrent = true;
+
+    getCurrentUser()
+      .then((response) => {
+        if (isCurrent) {
+          setAuthState(response?.user ? "authenticated" : "anonymous");
+        }
+      })
+      .catch(() => {
+        if (isCurrent) {
+          setAuthState("error");
+        }
+      });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
   async function goNext() {
     setFormError(null);
 
@@ -107,6 +138,11 @@ function CheckoutPageView() {
   async function onSubmit(values: CheckoutFormValues) {
     if (cart.items.length === 0) {
       setFormError("Корзина пуста.");
+      return;
+    }
+
+    if (authState !== "authenticated") {
+      setFormError("Войдите в аккаунт, чтобы оформить заказ.");
       return;
     }
 
@@ -147,7 +183,7 @@ function CheckoutPageView() {
       const paidOrder = await payOrderMock(createdOrder.id, idempotencyKey);
 
       notifyCartChanged();
-      window.location.assign(`/checkout/success?orderId=${encodeURIComponent(paidOrder.id)}`);
+      window.location.assign(`/checkout/successful?orderId=${encodeURIComponent(paidOrder.id)}`);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Не удалось выполнить mock payment.");
       setIsPaying(false);
@@ -158,12 +194,48 @@ function CheckoutPageView() {
     return <LoadingState label="Загружаем корзину для оформления" />;
   }
 
+  if (authState === "loading") {
+    return <LoadingState label="Проверяем сессию" />;
+  }
+
   if (state === "error") {
     return (
       <Container className="py-8">
         <ErrorState
           title="Checkout временно недоступен"
           description="Cart API не отвечает. Попробуйте обновить страницу."
+        />
+      </Container>
+    );
+  }
+
+  if (authState === "error") {
+    return (
+      <Container className="py-8">
+        <ErrorState
+          title="Не удалось проверить сессию"
+          description="Обновите страницу или попробуйте войти заново."
+        />
+      </Container>
+    );
+  }
+
+  if (authState === "anonymous") {
+    return (
+      <Container className="py-8">
+        <EmptyState
+          action={
+            <div className="flex flex-wrap justify-center gap-3">
+              <Button asChild>
+                <a href="/login">Войти</a>
+              </Button>
+              <Button asChild variant="outline">
+                <a href="/register">Создать аккаунт</a>
+              </Button>
+            </div>
+          }
+          description="Оформление заказа доступно только для авторизованных покупателей."
+          title="Нужно войти"
         />
       </Container>
     );
@@ -239,7 +311,7 @@ function CheckoutPageView() {
               </FieldError>
               <FieldError htmlFor="deliveryMethod" label="Способ доставки" error={errors.deliveryMethod?.message}>
                 <select
-                  className="h-10 w-full rounded-md border border-[var(--shop-input)] bg-[var(--shop-background)] px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-[var(--shop-ring)]"
+                  className="h-10 w-full rounded-md border border-[var(--shop-input)] bg-[var(--shop-background)] px-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-[var(--shop-ring)] sm:text-sm"
                   id="deliveryMethod"
                   {...register("deliveryMethod")}
                 >

@@ -186,7 +186,7 @@ POST /api/v1/orders/:id/pay/mock
 изменения корзины и переводит пользователя на:
 
 ```text
-/checkout/success?orderId=...
+/checkout/successful?orderId=...
 ```
 
 ## Проверки

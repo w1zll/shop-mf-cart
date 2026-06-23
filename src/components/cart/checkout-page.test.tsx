@@ -63,6 +63,14 @@ const orderResponse = {
   updatedAt: "2026-01-01T00:00:00.000Z",
 };
 
+const authResponse = {
+  user: {
+    id: "user-1",
+    email: "demo@example.com",
+    name: "Demo User",
+  },
+};
+
 afterEach(() => {
   cleanup();
   resetCartQueryClientForTests();
@@ -76,6 +84,10 @@ describe("CheckoutPage", () => {
 
       if (url.endsWith("/cart")) {
         return Promise.resolve(createResponse(cartResponse));
+      }
+
+      if (url.endsWith("/users/me")) {
+        return Promise.resolve(createResponse(authResponse));
       }
 
       return Promise.resolve(createResponse({ message: "Unexpected request" }, 500));
@@ -109,6 +121,10 @@ describe("CheckoutPage", () => {
 
       if (url.endsWith("/cart")) {
         return Promise.resolve(createResponse(cartResponse));
+      }
+
+      if (url.endsWith("/users/me")) {
+        return Promise.resolve(createResponse(authResponse));
       }
 
       if (url.endsWith("/auth/csrf")) {
@@ -152,5 +168,39 @@ describe("CheckoutPage", () => {
         method: "POST",
       }),
     );
+  });
+
+  it("asks anonymous users to sign in before checkout", async () => {
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const url = getRequestUrl(input);
+
+      if (url.endsWith("/cart")) {
+        return Promise.resolve(createResponse(cartResponse));
+      }
+
+      if (url.endsWith("/users/me")) {
+        return Promise.resolve(createResponse({ message: "Unauthorized" }, 401));
+      }
+
+      if (url.endsWith("/auth/csrf")) {
+        return Promise.resolve(createResponse({ csrfToken: "csrf-token" }));
+      }
+
+      if (url.endsWith("/auth/refresh")) {
+        return Promise.resolve(createResponse({ message: "Unauthorized" }, 401));
+      }
+
+      return Promise.resolve(createResponse({ message: "Unexpected request" }, 500));
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<CheckoutPage />);
+
+    expect(await screen.findByRole("heading", { name: "Нужно войти" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Войти" })).toHaveAttribute("href", "/login");
+    expect(
+      fetchMock.mock.calls.some(([input]) => getRequestUrl(input).endsWith("/orders")),
+    ).toBe(false);
   });
 });
